@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Comment;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Auth;
 
 class CommentController extends Controller
 {
@@ -28,11 +30,9 @@ class CommentController extends Controller
     {
         $comment = Comment::findOrFail($id);
     
-        // Check if the authenticated user is either the comment owner or the post owner
-        if ($comment->user_id != auth()->id() && $comment->post->user_id != auth()->id()) {
-            return redirect()->route('post.show', $$request->post_id)->with('error', 'Unauthorized action.');
+        if (Gate::denies('delete-comment', $comment)) {
+            return $this->redirectAfterComment($request);
         }
-    
         $comment->delete();
     
         return $this->redirectAfterComment($request);
@@ -40,10 +40,18 @@ class CommentController extends Controller
     public function edit($id)
     {
         $comment = Comment::findOrFail($id);
+        if (Gate::denies('update-comment', $comment)) {
+            return redirect()->route('post.show', $comment->post_id)->withErrors('You are not authorized to edit this comment.');
+        }
+        
         return view('app.comment.editComment', compact('comment'));
     }
     public function update(Request $request, $id)
     {
+        $comment = Comment::findOrFail($id);
+        if (Gate::denies('update-comment', $comment)) {
+            return redirect()->route('post.show', $comment->post_id)->withErrors('You are not authorized to update this comment.');
+        }
         $request->validate([
             'body' => 'required|string|max:1000',
         ]);

@@ -26,7 +26,9 @@ class CommentController extends Controller
     }
     public function update(Request $request, Comment $comment)
     {
-        Gate::authorize('update', $comment);
+        if (Gate::denies('update-comment', $comment)) {
+            return redirect()->route('post.show', $comment->post_id)->withErrors('You are not authorized to update this comment.');
+        }
         $request->validate([
             'body' => 'sometimes|string',
         ]);
@@ -35,10 +37,21 @@ class CommentController extends Controller
     }
     public function destroy(Comment $comment)
     {
-        Gate::authorize('delete', $comment);
-
+        if (Gate::denies('delete-comment', $comment)) {
+            return redirect()->route('post.show', $comment->post_id)->withErrors('You are not authorized to update this comment.');
+        }
         $comment->delete();
 
         return response()->json(['message' => 'Comment deleted successfully']);
+    }
+    public function edit($id)
+    {
+        $comment = Comment::findOrFail($id);
+
+        if (Gate::denies('update-comment', $comment)) {
+            return redirect()->route('post.show', $comment->post_id)->withErrors('You are not authorized to edit this comment.');
+        }
+
+        return view('app.comment.editComment', compact('comment'));
     }
 }

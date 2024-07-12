@@ -28,13 +28,27 @@ class PostController extends Controller
         ]);
         return response()->json($post, 201);
     }
-    public function show(Post $post)
+    public function show($id)
     {
-        return $post->load('user', 'comments');
+        $post = Post::with(['comments', 'user'])->findOrFail($id);
+        return view('app.post.show', compact('post'));
+    }
+
+    public function edit($id)
+    {
+        $post = Post::findOrFail($id);
+
+        if (Gate::denies('update-post', $post)) {
+            return redirect()->route('post.show', $id)->withErrors('You are not authorized to edit this post.');
+        }
+
+        return view('app.post.editPost', compact('post'));
     }
     public function update(Request $request, Post $post)
     {
-        Gate::authorize('update', $post);
+        if (Gate::denies('update-post', $post)) {
+            return redirect()->route('post.show', $post->id)->withErrors('You are not authorized to update this post.');
+        }
         $request->validate([
             'title' => 'sometimes|string|max:255',
             'body' => 'sometimes|string',
@@ -44,7 +58,10 @@ class PostController extends Controller
     }
     public function destroy(Post $post)
     {
-        Gate::authorize('delete', $post);
+        if (Gate::denies('delete-post', $post)) {
+            return redirect()->route('post.show', $post->id)->withErrors('You are not authorized to delete this post.');
+        }
+
         $post->delete();
         return response()->json(null, 204);
     }
