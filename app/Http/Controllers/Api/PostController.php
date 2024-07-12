@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Gate;
 
 class PostController extends Controller
 {
@@ -33,7 +34,7 @@ class PostController extends Controller
     }
     public function update(Request $request, Post $post)
     {
-        $this->authorize('update', $post);
+        Gate::authorize('update', $post);
         $request->validate([
             'title' => 'sometimes|string|max:255',
             'body' => 'sometimes|string',
@@ -43,7 +44,7 @@ class PostController extends Controller
     }
     public function destroy(Post $post)
     {
-        $this->authorize('delete', $post);
+        Gate::authorize('delete', $post);
         $post->delete();
         return response()->json(null, 204);
     }
